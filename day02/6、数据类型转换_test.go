@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -48,5 +49,46 @@ func TestTransformation(t *testing.T) {
 	fmt.Println("单个字符可以转为int")
 	var j int = int('a')
 	fmt.Printf("j=%d - 数据类型%T \n", j, j)
+
+	//bool和int不能相互转换
+
+	//byte和int可以互相转换
+	var by1 byte = byte(i)
+	i = int(by1)
+	fmt.Printf("i=%d\n", i)
+
+	//float和int可以互相转换，小数位会丢失
+	var ft float32 = float32(i)
+	i = int(ft)
+	fmt.Printf("i=%d\n", i)
+
+	// string和其他数据类型互转。
+	var err error
+	var i1 int = 8
+	var i64i int64 = int64(i1)
+	//int转string
+	var s string = strconv.Itoa(i1) //内部调用FormatInt
+	s = strconv.FormatInt(i64i, 10)
+	//string转int
+	i, err = strconv.Atoi(s)
+	//string转int64
+	i64i, err = strconv.ParseInt(s, 10, 64)
+
+	//float转string
+	var f float64 = 8.123456789
+	s = strconv.FormatFloat(f, 'f', 2, 64) //保留2位小数
+	fmt.Println(s)
+	//string转float
+	f, err = strconv.ParseFloat(s, 64)
+
+	//string<-->[]byte
+	var arr []byte = []byte(s)
+	s = string(arr)
+
+	//string<-->[]rune
+	var brr []rune = []rune(s)
+	s = string(brr)
+
+	fmt.Printf("err %v\n", err)
 
 }
