@@ -1,6 +1,7 @@
 package day04
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -56,6 +57,7 @@ func Fibonacci(n int) int {
 	return Fibonacci(n-1) + Fibonacci(n-2)
 }
 
+// 函数的基本形式
 func TestFunction(t *testing.T) {
 	var x, y int = 3, 6
 	argf(x, y) // 函数调用。 x,y是实参
@@ -93,4 +95,124 @@ func TestFunction(t *testing.T) {
 	fmt.Println("递归函数")
 	fmt.Printf("Fibonacci(): %d\n", Fibonacci(10))
 
+}
+
+// 匿名函数
+func functionArg1(f func(a, b int) int, b int) int { //f参数是一种函数类型
+	a := 2 * b
+	return f(a, b)
+}
+
+type foo func(a, b int) int //foo是一种函数类型
+
+func functionArg2(f foo, b int) int { //参数类型看上去简洁多了
+	a := 2 * b
+	return f(a, b)
+}
+
+type User struct {
+	Name  string
+	bye   foo                      //bye的类型是foo，而foo代表一种函数类型
+	hello func(name string) string //使用匿名函数来声明struct字段的类型
+}
+
+func TestAnonymousFunction(t *testing.T) {
+	ch := make(chan func(string) string, 10)
+	ch <- func(name string) string { //使用匿名函数
+		return "hello " + name
+	}
+	getCh := <-ch
+	fmt.Println(getCh("getCH"))
+}
+
+// 闭包
+// 闭包（Closure）是引用了自由变量的函数，自由变量将和函数一同存在，即使已经离开了创造它的环境。闭包复制的是原对象的指针。
+func sub() func() {
+	i := 10
+	fmt.Printf("%p \n", &i)
+	b := func() {
+		fmt.Printf("i addr %p \n", &i) // 闭环复制的是原对象的指针
+		i--                            // b函数内部引用了变量i
+		fmt.Println(i)
+	}
+	fmt.Printf("b 函数外的i: %d \n", i)
+	return b //返回了b函数，变量i和b函数将一起存在，即使已经离开函数sub()
+}
+
+// 外部引用函数参数局部变量
+func add(base int) func(int) int {
+	return func(i int) int {
+		fmt.Printf("base addr %p \n", &base)
+		base += i
+		return base
+	}
+}
+func TestClosure(t *testing.T) {
+	b := sub()
+	b()
+	b()
+	fmt.Println()
+
+	fmt.Println("tmp1")
+	tmp1 := add(10)
+	fmt.Println(tmp1(1), tmp1(2)) // 11, 12
+
+	fmt.Println("tmp2")
+	// 此时tmp1和tmp2不是一个实体了
+	tmp2 := add(100)
+	fmt.Println(tmp2(1), tmp2(2)) //101, 103
+}
+
+// 延迟调用defer
+// - defer用于注册一个延迟调用（在函数返回之前调用）。
+// - defer典型的应用场景是释放资源，比如关闭文件句柄，释放数据库连接等。
+// - 如果同一个函数里有多个defer，则后注册的先执行。
+// - defer后可以跟一个func，func内部如果发生panic，会把panic暂时搁置，当把其他defer执行完之后再来执行这个。
+// - defer后不是跟func，而直接跟一条执行语句，则相关变量在注册defer时被拷贝或计算。
+
+func basic() {
+	fmt.Println("A")
+	defer fmt.Println(1)
+	fmt.Println("B")
+	// 如果一个函数里有多个defer, 则后注册的先执行
+	defer fmt.Println(2)
+	fmt.Println("C")
+
+}
+
+func deferExeTime() (i int) {
+	i = 9
+	defer func() { // defer 后可以跟一个func
+		fmt.Printf("first i = %d \n", i) //打印5，而非9。充分理解“defer在函数返回前执行”的含义，不是在“return语句前执行defer”
+	}()
+
+	defer func(i int) {
+		fmt.Printf("second i=%d\n", i) //打印9
+	}(i)
+
+	defer fmt.Printf("third i=%d\n", i) //defer后不是跟func，而直接跟一条执行语句，则相关变量在注册defer时被拷贝或计算
+
+	return 5
+}
+func TestDefer(t *testing.T) {
+	basic()
+
+	deferExeTime()
+}
+
+// 异常处理
+// go语言没有try catch，它提倡返回error。
+
+func divide(a, b int) (int, error) {
+	if b == 0 {
+		return -1, errors.New("divide by zero")
+	}
+	return a / b, nil
+}
+
+func TestError(t *testing.T) {
+	if res, err := divide(3, 0); err != nil { //函数调用方判断error是否为nil
+		fmt.Println(err.Error())
+		fmt.Println(res)
+	}
 }
